@@ -6,6 +6,7 @@ import pandas as pd
 import pandas.io.sql as psql
 from procedure import add_export, delete_entry, clear_table, find_by_key_word, presence_export, add_reader, create_library_tabel, delete_library_table, filling_labrary_table, add_library_book, delete_by_key_word
 from function import trigger_function, trigger
+import traceback
 
 
 class Main(tk.Frame):
@@ -590,40 +591,66 @@ class DB:
             host="127.0.0.1",
             port="5432"
         )
-        self.cur = self.con.cursor()
+        try:
+            self.cur = self.con.cursor()
+        except:
+            print("It is impossible to connect to postgres")
 
     def create_db(self, name):
-        self.con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        query = "create database " + name + ";"
-        self.cur.execute(query)
-        self.con.commit()
-        print("Created")
+        try:
+            self.con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            query = "create database " + name + ";"
+            self.cur.execute(query)
+            self.con.commit()
+            print("Created")
+            return "Created"
+        except psycopg2.errors.DuplicateDatabase:
+            print("Duplicate")
+            return "Duplicate"
+        except:
+            traceback.print_exc()
+            return "Not created"
 
     def delete_db(self, name):
-        self.con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        query = "drop database " + name + ";"
-        self.cur.execute(query)
-        print("Deleted")
-        self.con.commit()
+        try:
+            self.con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            query = "drop database " + name + ";"
+            self.cur.execute(query)
+            self.con.commit()
+            print("Deleted")
+            return "Deleted"
+        except:
+            traceback.print_exc()
+            print("Not deleted")
+            return "Not deleted"
 
     def connect(self, name):
-        self.con = psycopg2.connect(
-            user="lib",
-            database=name,
-            password="lib1234",
-            host="127.0.0.1",
-            port="5432"
-        )
-        print("Connected")
-        self.cur = self.con.cursor()
-        # При подключении к БД(любой) автоматически создаются процедуры для создания и удаления наших таблиц
-        self.cur.execute("{}".format(create_library_tabel()))
-        self.cur.execute("{}".format(delete_library_table()))
-        print("proc created")
-        self.con.commit()
+        try:
+            self.con = psycopg2.connect(
+                user="postgres",
+                database=name,
+                password="22001",
+                host="127.0.0.1",
+                port="5432"
+            )
+            self.cur = self.con.cursor()
+            # При подключении к БД(любой) автоматически создаются процедуры для создания и удаления наших таблиц
+            self.cur.execute("{}".format(create_library_tabel()))
+            self.cur.execute("{}".format(delete_library_table()))
+            self.con.commit()
+            print("Connected")
+            return "Connected"
+        except:
+            traceback.print_exc()
+            return "Not connected"
 
     def close(self):
-        self.con.close()
+        try:
+            self.con.close()
+            return "Close"
+        except:
+            traceback.print_exc()
+            return "Not close"
 
     def procedure_create_table(self):
         try:
@@ -639,20 +666,35 @@ class DB:
             self.cur.execute("{}".format(clear_table()))
             self.cur.execute("{}".format(add_reader()))
             self.cur.execute("{}".format(delete_entry()))
-            print("CREATED!")
             self.con.commit()
+            print("Tables created")
+            return "Tables created"
+        except psycopg2.errors.DuplicateTable:
+            print("Duplicate tables")
+            return "Duplicate tables"
         except:
-            print('Tables are created yet')
+            traceback.print_exc()
+            return "Not created"
 
     def procedure_delete_table(self):
-        self.cur.execute("CALL delete_tables();")
-        print("DELETED!")
-        self.con.commit()
+        try:
+            self.cur.execute("CALL delete_tables();")
+            self.con.commit()
+            print("Deleted")
+            return "Deleted"
+        except:
+            traceback.print_exc()
+            return "Not deleted"
 
     def procedure_filling_tables(self):
-        self.cur.execute("CALL filling_tables();")
-        print("FILLING!")
-        self.con.commit()
+        try:
+            self.cur.execute("CALL filling_tables();")
+            self.con.commit()
+            print("Filling")
+            return "Filling"
+        except:
+            traceback.print_exc()
+            return "Not filling"
 
     def add_table(self, name, structure):
         try:
@@ -663,24 +705,37 @@ class DB:
             print("TABLE IS CREATED YET!")
 
     def procedure_add_book(self, title, writing_year, release_year, author_surname, author_name, author_patronymic):
-        self.cur.execute('CALL add_book(%s, %s, %s, %s, %s, %s);',
-                         (title, writing_year, release_year, author_surname, author_name, author_patronymic))
-        print("BOOK ADDED!")
-        self.con.commit()
+        try:
+            self.cur.execute('CALL add_book(%s, %s, %s, %s, %s, %s);',
+                             (title, writing_year, release_year, author_surname, author_name, author_patronymic))
+            self.con.commit()
+            print("Book added")
+            return "Book added"
+        except:
+            traceback.print_exc()
+            return "Book not added"
 
     def procedure_delete_kw(self, t_name, field, key_word):
-        self.cur.execute('CALL delete_key_word(%s, %s, %s);',
-                         (t_name, field, key_word))
-        print("DELETED!")
-        self.con.commit()
+        try:
+            self.cur.execute('CALL delete_key_word(%s, %s, %s);',
+                             (t_name, field, key_word))
+            self.con.commit()
+            print("Deleted")
+            return "Deleted"
+        except:
+            traceback.print_exc()
+            return "Not deleted"
 
     def procedure_find_kw(self, t_name, key_word):
         try:
             query = "SELECT * FROM find_key_word_from_" + t_name + "('" + key_word + "')"
             table = psql.read_sql(query, self.con)
             print(table)
+            return table
         except:
+            traceback.print_exc()
             print("There is no table " + t_name + " or key " + key_word)
+            return "Not deleted"
 
     def print_table(self, name):
         try:
@@ -697,27 +752,42 @@ class DB:
             print("There is no table " + name)
 
     def query_add_reader(self, surname, name, patronymic):
-        self.cur.execute('CALL add_reader(%s, %s, %s);',
-                         (surname, name, patronymic))
-        print("READER ADDED!")
-        self.con.commit()
+        try:
+            self.cur.execute('CALL add_reader(%s, %s, %s);',
+                             (surname, name, patronymic))
+            self.con.commit()
+            print("Reader added")
+            return "Reader added"
+        except:
+            traceback.print_exc()
+            return "Not added"
 
     def query_add_export(self, date, reader_id, book_id):
-        self.cur.execute('CALL add_export(%s, %s, %s);',
-                         (date, reader_id, book_id))
-        print("EXPORT ADDED!")
-        self.con.commit()
+        try:
+            self.cur.execute('CALL add_export(%s, %s, %s);',
+                             (date, reader_id, book_id))
+            self.con.commit()
+            print("Export added")
+            return "Export added"
+        except:
+            traceback.print_exc()
+            return "Not added"
 
     def return_book(self, date, reader_id, book_id):
-        self.cur.execute('CALL presence_export(%s, %s, %s);',
-                         (date, reader_id, book_id))
-        print("BOOK RETURNED!")
-
-        self.con.commit()
+        try:
+            self.cur.execute('CALL presence_export(%s, %s, %s);',
+                             (date, reader_id, book_id))
+            self.con.commit()
+            print("Book returned")
+            return "Book returned"
+        except:
+            traceback.print_exc()
+            return "Not returned"
 
     def query_find_book(self, name):
         table = psql.read_sql("SELECT * FROM show_book('{}')".format(name), self.con)
         print(table)
+        return table
 
     def procedure_clear_tables(self, name):
         try:
@@ -725,18 +795,25 @@ class DB:
                              (name,))
             if (name == "ALL"):
                 print("ALL TABLES CLEAR!")
+                return "All clear"
             else:
                 print("TABLE " + name + " CLEAR!")
+                return "Table " + name + " Clear!"
         except:
             print("There is no table " + name)
+            traceback.print_exc()
+            return "Not clear"
 
     def procedure_delete_entry(self, name, id):
         try:
             self.cur.execute('CALL delete_entry(%s, %s);',
                              (name, id))
-            print("ENTRY " + id + " FROM " + name + " DELETE!")
+            print("Entry " + id + " From " + name + " Delete!")
+            return "Entry " + id + " From " + name + " Delete!"
         except:
             print("There is no " + id + " in " + name)
+            traceback.print_exc()
+            return "Not deleted"
 
 
 if __name__ == "__main__":

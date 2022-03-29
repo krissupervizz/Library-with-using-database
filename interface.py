@@ -594,6 +594,7 @@ class DB:
         try:
             self.cur = self.con.cursor()
         except:
+            traceback.print_exc()
             print("It is impossible to connect to postgres")
 
     def create_db(self, name):
@@ -748,7 +749,9 @@ class DB:
             elif (name == 'export'):
                 table = psql.read_sql("SELECT * FROM print_export()", self.con)
             print(table)
+            return "Printed"
         except:
+            traceback.print_exc()
             print("There is no table " + name)
 
     def query_add_reader(self, surname, name, patronymic):

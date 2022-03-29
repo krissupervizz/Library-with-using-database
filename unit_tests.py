@@ -184,5 +184,30 @@ class TestDB(unittest.TestCase):
             self.db.procedure_create_table()
         self.assertEqual(self.db.procedure_clear_tables("book"), "Table book Clear!")
 
+    def test_print_table(self):
+        self.db.connect("library1")
+        self.db.cur.execute("""SELECT table_name FROM information_schema.tables
+                                              WHERE table_schema = 'public'""")
+        tables = self.db.cur.fetchall()
+        my_tables = [('author',), ('book',), ('export',), ('reader',)]
+        tables.sort()
+        my_tables.sort()
+        if my_tables != tables:
+            self.db.procedure_create_table()
+
+        self.assertEqual(self.db.print_table("export"), "Printed")
+
+    def test_delete_entry(self):
+        self.db.connect("library1")
+        self.db.cur.execute("""SELECT table_name FROM information_schema.tables
+                                                      WHERE table_schema = 'public'""")
+        tables = self.db.cur.fetchall()
+        my_tables = [('author',), ('book',), ('export',), ('reader',)]
+        tables.sort()
+        my_tables.sort()
+        if my_tables != tables:
+            self.db.procedure_create_table()
+        self.assertEqual(self.db.procedure_delete_entry("reader", "3"), "Entry 3 From reader Delete!")
+
 if __name__ == "__main__":
   unittest.main()
